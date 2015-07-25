@@ -25,6 +25,7 @@
 #include <Constants.au3>
 #include <Date.au3>
 
+#include <MsgBoxConstants.au3>
 #include <GUIConstantsEx.au3>
 #include <ListViewConstants.au3>
 
@@ -69,30 +70,36 @@ Global $reporttable[1][3] = [[0]]
 
 ; set rootfolder for projects
 
-$path = "J:\_Projekte" ; this gets overwritten if .ini-File exists
+; standardsettings for ThHF, they get overwritten if .ini-File exists
+$path = "J:\_Projekte"
 $wintitle = "Projekte"
 $Iconfile = ""
 $IconID = -1
 $nL = "P"
 
-Local $inifilename = StringTrimRight(@ScriptFullPath, 4) & ".ini"
+Local $inifilename = StringTrimRight(@ScriptFullPath, 4) & ".ini" ; get .ini-name from script- or exe-name
 
-If FileExists($inifilename) Then
-	$xpath = IniRead($inifilename, "general", "rootpath", $path)
-	If _WinAPI_PathIsRelative($xpath) Then
+
+If Drive_and_File_Exists($inifilename) Then
+
+	$xpath = IniRead($inifilename, "general", "rootpath", @ScriptDir)
+
+	If PathIsRelative($xpath) Then
+
 		$path = _WinAPI_PathAppend(@ScriptDir, $xpath)
-	ElseIf _WinAPI_PathIsRoot($xpath) Then
+	ElseIf PathIsRoot($xpath) Then
+
 		$path = $xpath
 	Else
 		$path = @ScriptDir
 	EndIf
 
-	$wintitle = IniRead($inifilename, "general", "title", $wintitle)
+	$wintitle = IniRead($inifilename, "general", "title", "myFileSysDB")
 
-	$xiconfile = IniRead($inifilename, "general", "iconfile", $Iconfile)
-	If _WinAPI_PathIsRelative($xiconfile) Then
+	$xiconfile = IniRead($inifilename, "general", "iconfile", "")
+	If PathIsRelative($xiconfile) Then
 		$Iconfile = _WinAPI_PathAppend(@ScriptDir, $xiconfile)
-	ElseIf _WinAPI_PathIsRoot($xiconfile) Then
+	ElseIf PathIsRoot($xiconfile) Then
 		$Iconfile = $xiconfile
 	ElseIf StringInStr($xiconfile, "\") = 0 Then
 		$Iconfile = @ScriptDir & "\" & $xiconfile
@@ -103,11 +110,56 @@ If FileExists($inifilename) Then
 		$Iconfile = ""
 	EndIf
 
-	$IconID = IniRead($inifilename, "general", "iconID", $IconID)
+	$IconID = IniRead($inifilename, "general", "iconID", -1)
 
-	$nL = IniRead($inifilename, "general", "numberletter", $nL)
+	$nL = IniRead($inifilename, "general", "numberletter", "P")
 
-EndIf
+
+	IF Not Drive_and_File_Exists($path) Then
+		MsgBox(0, "Fehler", "Der Wurzelordner "& $path & " exisitier nicht!", Default)
+
+		$sFileSelectFolder = FileSelectFolder("Bitte wählen Sie einene Wurzelordner!", "")
+
+		If @error Then
+			Exit
+		Else
+			$path=$sFileSelectFolder
+
+			$answer=MsgBox(3,"Frage","Soll der eben gewählte ordner in die ini.-Datei "& $inifilename &" eingetragen werden?")
+			if $answer=$IDYES Then
+				IniWrite ( $inifilename, "general", "rootpath",$path)
+			elseif $answer=$IDCANCEL Then
+				Exit
+			endif
+
+		EndIf
+
+	endif
+
+else
+
+	IF Not Drive_and_File_Exists($path) Then
+		MsgBox(0, "Fehler", "Die .ini-Datei  "& $inifilename &"  fehlt oder der Wurzelordner  "& $path & "  exisitier nicht!", Default)
+
+		$sFileSelectFolder = FileSelectFolder("Bitte wählen Sie einene Wurzelordner!", "")
+
+		If @error Then
+			Exit
+		Else
+			$path=$sFileSelectFolder
+
+			$answer=MsgBox(3,"Frage","Soll der eben gewählte Ordner in eine neue ini.-Datei "& $inifilename &" eingetragen werden?")
+			if $answer=$IDYES Then
+				IniWrite ( $inifilename, "general", "rootpath", $path )
+			elseif $answer=$IDCANCEL Then
+				Exit
+			endif
+
+		EndIf
+
+	endif
+
+endif
 
 
 $path = _WinAPI_PathRemoveBackslash($path)
@@ -1121,32 +1173,36 @@ Func foldermove($path)
 
 	If 2 = MsgBox(1, "Foldermove", "Mit dieser Funktion werden auch die Ziele der Shortcuts bearbeitet, wenn ein Ordnerbaum verschoben wird." & @CRLF & _
 			"Die Funktion benötigt drei Ordner. " & @CRLF & _
-			"1. den Wurzelordner, der verschoben werden soll," & @CRLF & _
+			"1. den Wurzelordner, dessen Inhalt verschoben werden soll," & @CRLF & _
 			"2. das Ziel, wo er hingeschoben werden soll und" & @CRLF & _
-			"3. einen Wurzelordner von dem Bereich, in dem alle Shortcuts angepasst werden sollen.") Then Return
+			"3. einen Wurzelordner von dem Bereich, in dem alle Shortcuts angepasst werden sollen.") Then
+		Return
+	endif
 
-	Local $folder_to_move = FileSelectFolder("Ordner der verschoben werden soll", "")
+	Local $folder_to_move = FileSelectFolder("Ordner, dessen Inhalt der verschoben werden soll", "")
 	If $folder_to_move = "" Then Return
+	;MsgBox(0,"Ordner, dessen Inhalt verschoben werden soll",$folder_to_move)
 
-	Local $target = FileSelectFolder("Ziel wo der Ordner hin soll.", "", 1)
+	Local $target = FileSelectFolder("Zielordner in den der Inhalt hin soll.", "", 1)
 	If $target = "" Then Return
+	;MsgBox(0,"Zielordner in den der Inhalt hin soll.",$target)
 
 
+	; Local $linkadjusting = FileSelectFolder("Bereich, in dem die Links angepasst werden.", "")
+	; If $linkadjusting = "" Then Return
+	; MsgBox(0,"Bereich, in dem die Links angepasst werden.",$linkadjusting)
 
-	Local $linkadjusting = FileSelectFolder("Bereich, in dem die Links angepasst werden.", "")
-	If $linkadjusting = "" Then Return
+	; return 0
 
 	; start execution
-
-	MsgBox(0, "x", $folder_to_move & " " & $target)
 
 	DirCopy($folder_to_move, $target, 1)
 
 	fm_checkshortcuts1($target, $folder_to_move, $target)
 
-	fm_checkshortcuts2($linkadjusting, $folder_to_move, $target)
+	; fm_checkshortcuts2($linkadjusting, $folder_to_move, $target)
 
-	DirRemove($folder_to_move, 1)
+	; DirRemove($folder_to_move, 1)
 
 EndFunc   ;==>foldermove
 
@@ -1159,18 +1215,21 @@ Func fm_checkshortcuts1($target, $folder_to_move_root, $target_root)
 
 	; Check if the search was successful
 	If $search = -1 Then
-		; MsgBox(0, "Error", "No files/directories matched the search pattern")
 		Exit
 	EndIf
 
+	MsgBox(0,"1","2")
+
 	While 1
 		$file = FileFindNextFile($search)
+		MsgBox(0,$file,"w")
 
 		If @error Then ExitLoop
+		If $file="" Then ExitLoop
 
 		$Type = FileGetAttrib($target & "\" & $file)
+        MsgBox(0,$target & "\" & $file,$Type)
 
-		; MsgBox(1, "File:", $file & " Type " & $Type)
 
 		If 0 <> StringInStr($Type, "D") Then
 
@@ -1178,14 +1237,13 @@ Func fm_checkshortcuts1($target, $folder_to_move_root, $target_root)
 
 		Else
 
-
 			If StringRight($file, 4) = ".lnk" Then
 
-				; Msgbox(1,"Link", $file)
+				MsgBox(1, "File:", $target & "\" & $file & " Type " & $Type)
 
 				$aDetails = FileGetShortcut($target & "\" & $file)
 				If Not @error Then
-
+					MsgBox(0,$folder_to_move_root,$aDetails[0])
 
 					If StringLeft($aDetails[0], StringLen($folder_to_move_root)) = $folder_to_move_root Then
 
@@ -1644,5 +1702,30 @@ Func extendarray3D(ByRef $array)
 		ReDim $array[UBound($array, 1) * 2][UBound($array, 2)][UBound($array, 3)]
 	EndIf
 EndFunc   ;==>extendarray3D
+
+; ----
+
+func Drive_and_File_Exists($name)
+	If Not ("READY"==DriveStatus(StringLeft($name,2))) Then
+		return 0
+	endif
+	return FileExists($name)
+endFunc
+
+Func PathIsRelative($xpath)
+	IF ("..\"=StringLeft($xpath,3)) Then
+		return 1
+	Else
+		return 0
+	EndIf
+EndFunc
+
+Func PathIsRoot($xpath)
+	If (":\"=StringMid($xpath,2,2)) Then
+		return 1
+	Else
+		return 0
+	EndIF
+EndFunc
 
 
