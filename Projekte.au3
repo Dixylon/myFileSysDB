@@ -224,8 +224,10 @@ $Menue_Main_1 = GUICtrlCreateMenu("Datei")
 $Menue_Main_1_1 = GUICtrlCreateMenuItem("Neues Projekt", $Menue_Main_1)
 GUICtrlCreateMenuItem("", $Menue_Main_1)
 $Menue_Main_1_2 = GUICtrlCreateMenuItem("Projekteliste exportieren", $Menue_Main_1)
+$Menue_Main_1_3 = GUICtrlCreateMenuItem("Öffne Wurzelordner", $Menue_Main_1)
+$Menue_Main_1_4 = GUICtrlCreateMenuItem("Zeige .ini-Datei", $Menue_Main_1)
 GUICtrlCreateMenuItem("", $Menue_Main_1)
-$Menue_Main_1_3 = GUICtrlCreateMenuItem("Beenden", $Menue_Main_1)
+$Menue_Main_1_5 = GUICtrlCreateMenuItem("Beenden", $Menue_Main_1)
 
 $Menue_Main_2 = GUICtrlCreateMenu("Testen")
 
@@ -357,12 +359,16 @@ While 1
 				Next
 
 				Switch $msg[0]
-					Case $GUI_EVENT_CLOSE, $Menue_Main_1_3
+					Case $GUI_EVENT_CLOSE, $Menue_Main_1_5
 						Exit
 					Case $Menue_Main_1_1
 						neues_Projekt($path)
 					Case $Menue_Main_1_2
 						saveall($path)
+					Case $Menue_Main_1_3
+						ShellExecute($path)
+					Case $Menue_Main_1_4
+						ShellExecute($inifilename)
 
 					Case $Menue_Main_2_1
 						checkfolder($path)
